@@ -13,12 +13,20 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/google/go-github/v26/github"
+	"github.com/google/go-github/v27/github"
 	"golang.org/x/oauth2"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 func main() {
+	// ##############################################################################
+	log.Println("one")
+
+	data, err := ioutil.ReadFile(os.Getenv("GITHUB_EVENT_PATH"))
+	if err != nil {
+		log.Fatalln(err)
+	}
+	log.Println(string(data))
 	app := kingpin.New(filepath.Base(os.Args[0]), "commentMonitor github comment extract\n ./commentMonitor -i /path/event.json -o /path \"^myregex$\"\nExample of comment template environment variable: COMMENT_TEMPLATE=\"The benchmark is starting. Your Github token is {{ index . \\\"GITHUB_TOKEN\\\" }}.\"")
 	app.HelpFlag.Short('h')
 	input := app.Flag("input", "path to event.json").Short('i').Default("/github/workflow/event.json").String()
@@ -27,13 +35,17 @@ func main() {
 	templateEnvVar := app.Flag("template-var", "Name of the environment variable that contains comment template.").Short('t').Default("COMMENT_TEMPLATE").String()
 	regex := app.Arg("regex", "Regex pattern to match").Required().String()
 	kingpin.MustParse(app.Parse(os.Args[1:]))
+	// ##############################################################################
+	log.Println("one")
 
 	// Reading event.json.
-	err := os.MkdirAll(*output, os.ModePerm)
+	err = os.MkdirAll(*output, os.ModePerm)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	data, err := ioutil.ReadFile(*input)
+	// ##############################################################################
+	log.Println("one")
+	data, err = ioutil.ReadFile(*input)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -43,6 +55,8 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	// ##############################################################################
+	log.Println("one")
 
 	switch e := event.(type) {
 	case *github.IssueCommentEvent:
@@ -53,6 +67,8 @@ func main() {
 
 		// Github client for posting comments.
 		clt := newClient(os.Getenv("GITHUB_TOKEN"))
+		// ##############################################################################
+		log.Println("one")
 
 		// Check author association.
 		if *verifyUser {
@@ -65,6 +81,8 @@ func main() {
 			}
 			log.Printf("author is member or collaborator")
 		}
+		// ##############################################################################
+		log.Println("one")
 
 		// Validate comment.
 		args, err := regexValidation(*regex, *e.GetComment().Body)
@@ -76,18 +94,24 @@ func main() {
 		// Save args to file. Stores releaseVersion in ARG_0 and prnumber in ARG_1.
 		args = append(args, strconv.Itoa(prnumber))
 		writeArgs(args, *output)
+		// ##############################################################################
+		log.Println("one")
 
 		envVars := make(map[string]string)
 		for _, e := range os.Environ() {
 			tmp := strings.Split(e, "=")
 			envVars[tmp[0]] = tmp[1]
 		}
+		// ##############################################################################
+		log.Println("one")
 
 		var buf bytes.Buffer
 		commentTemplate := template.Must(template.New("Comment").Parse(os.Getenv(*templateEnvVar)))
 		if err := commentTemplate.Execute(&buf, envVars); err != nil {
 			log.Fatalln(err)
 		}
+		// ##############################################################################
+		log.Println("one")
 
 		if err := postComment(clt, owner, repo, prnumber, buf.String()); err != nil {
 			log.Fatalln(err)
@@ -98,6 +122,8 @@ func main() {
 		if _, _, err := clt.Issues.AddLabelsToIssue(context.Background(), owner, repo, prnumber, benchmarkLabel); err != nil {
 			log.Fatalln(err)
 		}
+		// ##############################################################################
+		log.Println("one")
 
 	default:
 		log.Fatalln("simpleargs only supports issue_comment event")
