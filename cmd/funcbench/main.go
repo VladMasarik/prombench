@@ -45,6 +45,9 @@ func main() {
 
 		//Variable and environment setup.
 		branch := readFile("/github/home/ARG_0")
+		if branch == "" {
+			branch = "master"
+		}
 		issueComment := readFile("/github/home/ARG_1")
 		race := readFile("/github/home/ARG_2")
 		prNumber, err := strconv.Atoi(readFile("/github/home/ARG_3"))
