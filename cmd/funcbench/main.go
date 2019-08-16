@@ -87,13 +87,17 @@ func main() {
 			log.Fatalln(err)
 		}
 
-		os.Chdir(os.Getenv("GITHUB_WORKSPACE"))
+		if err := os.Chdir(os.Getenv("GITHUB_WORKSPACE")); err != nil {
+			log.Fatalln(err)
+		}
 		data, err := exec.Command("git", "clone", fmt.Sprintf("https://github.com/%s/%s.git", owner, repo)).CombinedOutput()
 		log.Println(string(data))
 		if err != nil {
 			log.Fatalln(err)
 		}
-		os.Chdir(repo)
+		if err := os.Chdir(repo); err != nil {
+			log.Fatalln(err)
+		}
 
 		latestCommitHash := os.Getenv("GITHUB_SHA")
 		logLink := fmt.Sprintf("Check https://github.com/%s/%s/commit/%s/checks for more information.", owner, repo, latestCommitHash)
@@ -160,7 +164,7 @@ func main() {
 		}
 
 		// Checkout to the comparing branch.
-		filepath.Walk(os.Getenv("GITHUB_WORKSPACE"), func(path string, info os.FileInfo, err error) error {
+		err = filepath.Walk(os.Getenv("GITHUB_WORKSPACE"), func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
@@ -175,6 +179,9 @@ func main() {
 			}
 			return nil
 		})
+		if err != nil {
+			log.Fatalln(err)
+		}
 
 		// Benchmark the comparing branch.
 		if race == "-no-race" {
