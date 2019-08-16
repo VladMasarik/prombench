@@ -8,6 +8,8 @@ build:
     binaries:
         - name: prombench
           path: ./cmd/prombench
+        - name: funcbench
+          path: ./cmd/funcbench
         - name: scaler
           path: ./tools/scaler
         - name: fake-webserver

@@ -1,10 +1,10 @@
 ## Intro
-The repository provides two main functions:
+The repository provides two main projects:
 - fucnbench
 - prombench
 
 ## Prombench
-Benchmarking of the whole Prometheus stack and comparison with the Prometheus master branch. The benchmark is initiated by commenting on a pull request in the Prometheus repository. See Prombench [README.md](/cmd/prombench/README.md) for more information.
+Benchmarks and compares two different Prometheus versions. The benchmark is initiated by creating a comment on a pull request in the repository. See Prombench [README.md](/cmd/prombench/README.md) for more information.
 
 ## Funcbench
-Benchmarking of the time series database that Prometheus uses by default. The benchmark is initiated by commenting on a pull request in the Prometheus/TSDB repository. See Funcbench [README.md](/cmd/funcbench/README.md) for more information.
+Benchmarking of functions matched by regex using Golang `benchcmp` tool. The benchmark is initiated by commenting on a pull request in the Prometheus/TSDB repository. See Funcbench [README.md](/cmd/funcbench/README.md) for more information.

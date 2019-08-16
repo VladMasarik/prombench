@@ -1,3 +1,15 @@
+// Copyright 2019 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package main
 
 import (
@@ -28,12 +40,12 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	// Temporary fix for the new Github actions time format. This makes the time stamps unusable.
+	// Temporary fix for the new Github actions time format, as go-github is not capable of parsing it. This makes the time stamps unusable.
 	txt := string(data)
 	reg := regexp.MustCompile("(.*)\"[0-9]+/[0-9]+/2019 [0-9]+:[0-9]+:[0-9]+ [AP]M(.*)")
 	txt = reg.ReplaceAllString(txt, "$1\"2019-06-11T09:26:28Z$2")
 	data = []byte(txt)
-	// End of the temporary fix
+	// End of the temporary fix.
 
 	event, err := github.ParseWebHook("issue_comment", data)
 	if err != nil {
@@ -43,7 +55,7 @@ func main() {
 	switch e := event.(type) {
 	case *github.IssueCommentEvent:
 
-		//Variable and environment setup.
+		//Variable setup.
 		branch := readFile("/github/home/ARG_0")
 		if branch == "" {
 			branch = "master"
@@ -60,10 +72,6 @@ func main() {
 		log.Printf("ARG_2 / race = %s", race)
 		log.Printf("ARG_3 / prnumber = %d", prNumber)
 
-		if err := os.Setenv("GO111MODULE", "on"); err != nil {
-			log.Fatalln(err)
-		}
-
 		clt := newClient(os.Getenv("GITHUB_TOKEN"))
 		home := os.Getenv("HOME")
 		oldPath := strings.Join([]string{home, "/old.txt"}, "")
@@ -74,6 +82,11 @@ func main() {
 		log.Printf("Owner %s", owner)
 		log.Printf("Repo %s", repo)
 
+		// Environment setup.
+		if err := os.Setenv("GO111MODULE", "on"); err != nil {
+			log.Fatalln(err)
+		}
+
 		os.Chdir(os.Getenv("GITHUB_WORKSPACE"))
 		data, err := exec.Command("git", "clone", fmt.Sprintf("https://github.com/%s/%s.git", owner, repo)).CombinedOutput()
 		log.Println(string(data))
@@ -83,7 +96,7 @@ func main() {
 		os.Chdir(repo)
 
 		latestCommitHash := os.Getenv("GITHUB_SHA")
-		log.Println(latestCommitHash)
+		logLink := fmt.Sprintf("Check https://github.com/%s/%s/commit/%s/checks for more information.", owner, repo, latestCommitHash)
 
 		data, err = exec.Command("git", "config", "--global", "user.email", "prombench@example.com").CombinedOutput()
 		if err != nil {
@@ -136,7 +149,7 @@ func main() {
 		data, err = cmd.CombinedOutput()
 		log.Println(string(data))
 		if err != nil || cmd.ProcessState.ExitCode() != 0 {
-			if err := postComment(clt, owner, repo, prNumber, fmt.Sprintf("Go test for this pull request failed. Check https://github.com/%s/%s/commit/%s/checks for more information.", owner, repo, latestCommitHash)); err != nil {
+			if err := postComment(clt, owner, repo, prNumber, fmt.Sprintf("Go test for this pull request failed. %s", logLink)); err != nil {
 				log.Fatalln(err)
 			}
 			log.Fatalln(err)
@@ -172,7 +185,7 @@ func main() {
 		data, err = cmd.CombinedOutput()
 		log.Println(string(data))
 		if err != nil || cmd.ProcessState.ExitCode() != 0 {
-			if err := postComment(clt, owner, repo, prNumber, fmt.Sprintf("Go test on branch %s failed. Check https://github.com/%s/%s/commit/%s/checks for more information.", branch, owner, repo, latestCommitHash)); err != nil {
+			if err := postComment(clt, owner, repo, prNumber, fmt.Sprintf("Go test on branch %s failed. %s", branch, logLink)); err != nil {
 				log.Fatalln(err)
 			}
 			log.Fatalln(err)
@@ -182,29 +195,27 @@ func main() {
 			log.Fatalln(err)
 		}
 
+		// Compare the benchmarks.
 		data, err = exec.Command(strings.Join([]string{os.Getenv("GOPATH"), "/bin/benchcmp"}, ""), oldPath, newPath).CombinedOutput()
 		if err != nil {
 			log.Println(string(data))
-			if err := postComment(clt, owner, repo, prNumber, fmt.Sprintf("Error: `benchcmp` failed. Check https://github.com/%s/%s/commit/%s/checks for more information.", owner, repo, latestCommitHash)); err != nil {
+			if err := postComment(clt, owner, repo, prNumber, fmt.Sprintf("Error: `benchcmp` failed. %s", logLink)); err != nil {
 				log.Fatalln(err)
 			}
 			log.Fatalln(err)
 		}
 		if strings.Count(string(data), "\n") < 2 {
-			if err := postComment(clt, owner, repo, prNumber, fmt.Sprintf("Error: `go test` could not match any benchmarked functions. Check https://github.com/%s/%s/commit/%s/checks for more information.", owner, repo, latestCommitHash)); err != nil {
+			if err := postComment(clt, owner, repo, prNumber, fmt.Sprintf("Error: `go test` did not match any benchmarked functions. %s", logLink)); err != nil {
 				log.Fatalln(err)
 			}
 		}
 
+		// Create and post the final comment.
 		tableContent := strings.Split(string(data), "\n")
-		// for i, e := range tableContent {
 		for i := 0; i <= len(tableContent)-1; i++ {
 			e := tableContent[i]
 			switch {
 			case e == "":
-				// Delete i-th element
-				// tableContent = append(tableContent[:i], tableContent[i+1:]...)
-				// continue outerForLoop
 
 			case strings.Contains(e, "old ns/op"):
 				e = "| Benchmark | Old ns/op | New ns/op | Delta |"
@@ -223,15 +234,12 @@ func main() {
 				tableContent = append(tableContent[:i+1], append([]string{"|-|-|-|-|"}, tableContent[i+1:]...)...)
 
 			default:
-				// Replace spaces with |
+				// Replace spaces with "|".
 				e = strings.Join(strings.Fields(e), "|")
 			}
 			tableContent[i] = e
 		}
-		// Insert into slice
-		// tableContent = append(tableContent[:1], append([]string{"|-|-|-|-|"}, tableContent[1:]...)...)
 
-		// Post the resulting comment.
 		if err := postComment(clt, owner, repo, prNumber, strings.Join(tableContent, "\n")); err != nil {
 			log.Fatalln(err)
 		}
