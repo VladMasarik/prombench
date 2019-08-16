@@ -129,9 +129,9 @@ func main() {
 
 		// Benchmark the with pullrequest changes.
 		if race == "-no-race" {
-			cmd = exec.Command("go", "test", "-bench", issueComment, "-benchmem", "-v", "./...")
+			cmd = exec.Command("go", "test", "-bench", fmt.Sprintf("^%s$", issueComment), "-benchmem", "-v", "./...")
 		} else {
-			cmd = exec.Command("go", "test", "-bench", issueComment, "-benchmem", "-race", "-v", "./...")
+			cmd = exec.Command("go", "test", "-bench", fmt.Sprintf("^%s$", issueComment), "-benchmem", "-race", "-v", "./...")
 		}
 		data, err = cmd.CombinedOutput()
 		log.Println(string(data))
@@ -165,9 +165,9 @@ func main() {
 
 		// Benchmark the comparing branch.
 		if race == "-no-race" {
-			cmd = exec.Command("go", "test", "-bench", issueComment, "-benchmem", "-v", "./...")
+			cmd = exec.Command("go", "test", "-bench", fmt.Sprintf("^%s$", issueComment), "-benchmem", "-v", "./...")
 		} else {
-			cmd = exec.Command("go", "test", "-bench", issueComment, "-benchmem", "-race", "-v", "./...")
+			cmd = exec.Command("go", "test", "-bench", fmt.Sprintf("^%s$", issueComment), "-benchmem", "-race", "-v", "./...")
 		}
 		data, err = cmd.CombinedOutput()
 		log.Println(string(data))
