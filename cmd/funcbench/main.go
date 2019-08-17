@@ -23,7 +23,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
@@ -164,12 +163,6 @@ func main() {
 			log.Fatalln(err)
 		}
 
-		data, err = exec.Command("ls", "-lav", "/github/workspace/prometheus/cmd/prometheus").CombinedOutput()
-		log.Println(string(data))
-		if err != nil {
-			log.Fatalln(err)
-		}
-		time.Sleep(time.Millisecond)
 		// Checkout to the comparing branch.
 		err = filepath.Walk(os.Getenv("GITHUB_WORKSPACE"), func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -182,6 +175,16 @@ func main() {
 			data, err = exec.Command("git", "checkout", "--", path).CombinedOutput()
 			if err != nil {
 				log.Println(string(data))
+
+				// New file appeared and is not tracked, then it can be removed
+				if strings.Contains(string(data), "did not match any file") {
+					data, err = exec.Command("rm", path).CombinedOutput()
+					if err != nil {
+						log.Println(string(data))
+						log.Fatalln(err)
+					}
+					return nil
+				}
 				log.Fatalln(err)
 			}
 			return nil
