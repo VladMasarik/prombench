@@ -23,6 +23,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
@@ -163,6 +164,12 @@ func main() {
 			log.Fatalln(err)
 		}
 
+		data, err = exec.Command("ls", "-lav", "/github/workspace/prometheus/cmd/prometheus").CombinedOutput()
+		log.Println(string(data))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		time.Sleep(time.Millisecond)
 		// Checkout to the comparing branch.
 		err = filepath.Walk(os.Getenv("GITHUB_WORKSPACE"), func(path string, info os.FileInfo, err error) error {
 			if err != nil {
