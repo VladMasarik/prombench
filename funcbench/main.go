@@ -219,8 +219,8 @@ func (c *gitClient) revertPRChanges() error {
 
 			// New file appeared and is not tracked, then it can be removed.
 			if strings.Contains(data, "did not match any file") {
-				if err := os.Remove(path); err != nil {
-					return errors.Errorf("Error: %v; Command out: %s", err, string(data))
+				if removeErr := os.Remove(path); removeErr != nil {
+					return errors.Errorf("Error: %v; Command out: %s", removeErr, string(data))
 				}
 				return nil
 			}
